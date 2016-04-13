@@ -22,6 +22,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.apache.usergrid.persistence.collection.uniquevalues.AkkaFig;
+import org.apache.usergrid.persistence.collection.uniquevalues.UniqueValuesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -123,25 +125,35 @@ public class CpEntityManagerFactory implements EntityManagerFactory, Application
     private final ConnectionService connectionService;
     private final GraphManagerFactory graphManagerFactory;
 
-    public CpEntityManagerFactory( final CassandraService cassandraService, final CounterUtils counterUtils,
+    private UniqueValuesService uniqueValuesService;
+
+
+    public CpEntityManagerFactory( final CassandraService cassandraService,
+                                   final CounterUtils counterUtils,
                                    final Injector injector ) {
 
         this.cassandraService = cassandraService;
         this.counterUtils = counterUtils;
         this.injector = injector;
-        this.reIndexService = injector.getInstance(ReIndexService.class);
-        this.entityManagerFig = injector.getInstance(EntityManagerFig.class);
-        this.managerCache = injector.getInstance( ManagerCache.class );
-        this.metricsFactory = injector.getInstance( MetricsFactory.class );
-        this.indexService = injector.getInstance( AsyncEventService.class );
+
+        this.reIndexService      = injector.getInstance( ReIndexService.class);
+        this.entityManagerFig    = injector.getInstance( EntityManagerFig.class);
+        this.managerCache        = injector.getInstance( ManagerCache.class );
+        this.metricsFactory      = injector.getInstance( MetricsFactory.class );
+        this.indexService        = injector.getInstance( AsyncEventService.class );
         this.graphManagerFactory = injector.getInstance( GraphManagerFactory.class );
-        this.collectionService = injector.getInstance( CollectionService.class );
-        this.connectionService = injector.getInstance( ConnectionService.class );
+        this.collectionService   = injector.getInstance( CollectionService.class );
+        this.connectionService   = injector.getInstance( ConnectionService.class );
 
-        //this line always needs to be last due to the temporary cicular dependency until spring is removed
-        this.applicationIdCache = injector.getInstance(ApplicationIdCacheFactory.class).getInstance(
-            getManagementEntityManager() );
+        AkkaFig akkaFig = injector.getInstance( AkkaFig.class );
+        if ( akkaFig.getAkkaEnabled() ) {
+            this.uniqueValuesService = injector.getInstance( UniqueValuesService.class );
+            this.uniqueValuesService.start();
+        }
 
+        //this line always needs to be last due to the temporary circular dependency until spring is removed
+        this.applicationIdCache = injector.getInstance(ApplicationIdCacheFactory.class)
+            .getInstance( getManagementEntityManager() );
 
     }
 

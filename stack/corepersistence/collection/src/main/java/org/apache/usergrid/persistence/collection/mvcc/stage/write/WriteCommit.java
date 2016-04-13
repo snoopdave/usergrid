@@ -99,38 +99,6 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
     @Override
     public CollectionIoEvent<MvccEntity> call( final CollectionIoEvent<MvccEntity> ioEvent ) {
 
-        // akkaFig may be null when this is called from JUnit tests
-        if ( akkaFig != null && akkaFig.getAkkaEnabled() ) {
-            return confirmUniqueFieldsAkka( ioEvent );
-        }
-        return confirmUniqueFields( ioEvent );
-    }
-
-    private CollectionIoEvent<MvccEntity> confirmUniqueFieldsAkka(CollectionIoEvent<MvccEntity> ioEvent) {
-
-        final MvccEntity mvccEntity = ioEvent.getEvent();
-        MvccValidationUtils.verifyMvccEntityWithEntity( mvccEntity );
-
-        final Id entityId = mvccEntity.getId();
-        final UUID version = mvccEntity.getVersion();
-        final ApplicationScope applicationScope = ioEvent.getEntityCollection();
-
-        //set the version into the entity
-        final Entity entity = mvccEntity.getEntity().get();
-
-        try {
-            akkaUvService.confirmUniqueValues( applicationScope, entity, mvccEntity.getVersion() );
-
-        } catch (UniqueValueException e) {
-            Map<String, Field> violations = new HashMap<>();
-            violations.put( e.getField().getName(), e.getField() );
-            throw new WriteUniqueVerifyException( mvccEntity, applicationScope, violations  );
-        }
-
-        return ioEvent;
-    }
-
-    private CollectionIoEvent<MvccEntity> confirmUniqueFields(CollectionIoEvent<MvccEntity> ioEvent) {
         final MvccEntity mvccEntity = ioEvent.getEvent();
         MvccValidationUtils.verifyMvccEntityWithEntity( mvccEntity );
 
@@ -157,18 +125,11 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
         // merge the 2 into 1 mutation
         logMutation.mergeShallow( entityMutation );
 
-        // re-write the unique values but this time with no TTL
-        for ( Field field : EntityUtils.getUniqueFields(mvccEntity.getEntity().get()) ) {
-
-                UniqueValue written  = new UniqueValueImpl( field,
-                    entityId,version);
-
-                MutationBatch mb = uniqueValueStrat.write(applicationScope,  written );
-
-                logger.debug("Finalizing {} unique value {}", field.getName(), field.getValue().toString());
-
-                // merge into our existing mutation batch
-                logMutation.mergeShallow( mb );
+        // akkaFig may be null when this is called from JUnit tests
+        if ( akkaFig != null && akkaFig.getAkkaEnabled() ) {
+            confirmUniqueFieldsAkka( mvccEntity, version, applicationScope );
+        } else {
+            confirmUniqueFields( mvccEntity, version, applicationScope, logMutation );
         }
 
         try {
@@ -182,4 +143,43 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
 
         return ioEvent;
     }
+
+
+    private void confirmUniqueFields(
+        MvccEntity mvccEntity, UUID version, ApplicationScope scope, MutationBatch logMutation) {
+
+        final Entity entity = mvccEntity.getEntity().get();
+
+        // re-write the unique values but this time with no TTL
+        for ( Field field : EntityUtils.getUniqueFields(entity) ) {
+
+                UniqueValue written  = new UniqueValueImpl( field, entity.getId(), version);
+
+                MutationBatch mb = uniqueValueStrat.write(scope,  written );
+
+                logger.debug("Finalizing {} unique value {}", field.getName(), field.getValue().toString());
+
+                // merge into our existing mutation batch
+                logMutation.mergeShallow( mb );
+        }
+    }
+
+
+    private void confirmUniqueFieldsAkka(
+        MvccEntity mvccEntity, UUID version, ApplicationScope scope ) {
+
+        final Entity entity = mvccEntity.getEntity().get();
+
+        try {
+            akkaUvService.confirmUniqueValues( scope, entity, version );
+
+        } catch (UniqueValueException e) {
+
+            Map<String, Field> violations = new HashMap<>();
+            violations.put( e.getField().getName(), e.getField() );
+
+            throw new WriteUniqueVerifyException( mvccEntity, scope, violations  );
+        }
+    }
+
 }
