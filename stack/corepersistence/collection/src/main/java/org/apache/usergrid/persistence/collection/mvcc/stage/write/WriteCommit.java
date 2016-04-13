@@ -98,7 +98,9 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
 
     @Override
     public CollectionIoEvent<MvccEntity> call( final CollectionIoEvent<MvccEntity> ioEvent ) {
-        if ( akkaFig.getAkkaEnabled() ) {
+
+        // akkaFig may be null when this is called from JUnit tests
+        if ( akkaFig != null && akkaFig.getAkkaEnabled() ) {
             return confirmUniqueFieldsAkka( ioEvent );
         }
         return confirmUniqueFields( ioEvent );

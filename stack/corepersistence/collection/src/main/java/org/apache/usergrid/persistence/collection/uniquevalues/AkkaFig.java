@@ -50,7 +50,7 @@ public interface AkkaFig extends GuicyFig {
      * Use Akka or nah
      */
     @Key(AKKA_ENABLED)
-    @Default("true")
+    @Default("false")
     boolean getAkkaEnabled();
 
     /**

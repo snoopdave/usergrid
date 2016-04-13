@@ -17,6 +17,7 @@ import org.apache.usergrid.persistence.model.entity.Entity;
 import org.apache.usergrid.persistence.model.entity.SimpleId;
 import org.apache.usergrid.persistence.model.field.StringField;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,6 +54,7 @@ public class LocalPreventDupsTest {
     private static final AtomicInteger errorCounter = new AtomicInteger( 0 );
 
     @Test
+    @Ignore
     public void testBasicOperation() throws Exception {
 
         uniqueValuesService.start("127.0.0.1", 2551, "us-east");

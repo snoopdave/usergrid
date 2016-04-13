@@ -57,15 +57,4 @@ public class TestCollectionModule extends TestModule {
 
     }
 
-
-    private static Map<String, Injector> injectorsByName = new HashMap<>();
-
-    public static Injector getInjector( String name ) {
-        Injector i = injectorsByName.get( name );
-        if ( i == null ) {
-            i = Guice.createInjector( new TestCollectionModule() );
-        }
-        return i;
-    }
-
 }
