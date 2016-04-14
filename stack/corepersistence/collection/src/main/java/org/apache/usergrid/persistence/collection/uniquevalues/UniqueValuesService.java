@@ -42,7 +42,6 @@ public interface UniqueValuesService {
 
     /**
      * Initialize and wait for Akka actors to start.
-     * Initialize and wait for Akka actors to start.
      */
     void start();
 
