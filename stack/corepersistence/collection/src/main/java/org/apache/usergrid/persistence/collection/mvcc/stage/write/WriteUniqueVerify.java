@@ -72,6 +72,8 @@ public class WriteUniqueVerify implements Action1<CollectionIoEvent<MvccEntity>>
 
     private final UniqueValueSerializationStrategy uniqueValueStrat;
 
+    public static int uniqueVerifyPoolSize = 100;
+
     protected final SerializationFig serializationFig;
 
     protected final Keyspace keyspace;
@@ -96,6 +98,8 @@ public class WriteUniqueVerify implements Action1<CollectionIoEvent<MvccEntity>>
 
         this.uniqueValueStrat = uniqueValueSerializiationStrategy;
         this.serializationFig = serializationFig;
+
+        uniqueVerifyPoolSize = this.serializationFig.getUniqueVerifyPoolSize();
     }
 
 
@@ -220,7 +224,8 @@ public class WriteUniqueVerify implements Action1<CollectionIoEvent<MvccEntity>>
 
         @Override
         protected Map<String, Field> getFallback() {
-            return executeStrategy(fig.getConsistentReadCL());
+            // fallback with same CL as there are many reasons the 1st execution failed, not just due to consistency problems
+            return executeStrategy(fig.getReadCL());
         }
 
         public Map<String, Field> executeStrategy(ConsistencyLevel consistencyLevel){
@@ -264,5 +269,5 @@ public class WriteUniqueVerify implements Action1<CollectionIoEvent<MvccEntity>>
     public static final HystrixCommand.Setter
         REPLAY_GROUP = HystrixCommand.Setter.withGroupKey(
             HystrixCommandGroupKey.Factory.asKey( "uniqueVerify" ) ).andThreadPoolPropertiesDefaults(
-                HystrixThreadPoolProperties.Setter().withCoreSize( 100 ) );
+                HystrixThreadPoolProperties.Setter().withCoreSize( uniqueVerifyPoolSize ) );
 }
