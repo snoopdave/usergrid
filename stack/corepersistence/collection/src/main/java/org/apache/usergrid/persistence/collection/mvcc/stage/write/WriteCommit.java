@@ -127,7 +127,7 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
 
         // akkaFig may be null when this is called from JUnit tests
         if ( akkaFig != null && akkaFig.getAkkaEnabled() ) {
-            confirmUniqueFieldsAkka( mvccEntity, version, applicationScope );
+            confirmUniqueFieldsAkka( mvccEntity, version, applicationScope, ioEvent.getRegion() );
         } else {
             confirmUniqueFields( mvccEntity, version, applicationScope, logMutation );
         }
@@ -166,12 +166,12 @@ public class WriteCommit implements Func1<CollectionIoEvent<MvccEntity>, Collect
 
 
     private void confirmUniqueFieldsAkka(
-        MvccEntity mvccEntity, UUID version, ApplicationScope scope ) {
+        MvccEntity mvccEntity, UUID version, ApplicationScope scope, String region ) {
 
         final Entity entity = mvccEntity.getEntity().get();
 
         try {
-            akkaUvService.confirmUniqueValues( scope, entity, version );
+            akkaUvService.confirmUniqueValues( scope, entity, version, region );
 
         } catch (UniqueValueException e) {
 

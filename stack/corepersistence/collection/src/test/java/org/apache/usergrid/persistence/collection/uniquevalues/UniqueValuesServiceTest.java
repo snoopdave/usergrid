@@ -86,7 +86,7 @@ public class UniqueValuesServiceTest {
         }
 
         Assert.assertEquals( 0, usernamesWithDuplicates );
-        
+
         Assert.assertEquals( numUsers, successCounter.get() );
         Assert.assertEquals( 0, errorCounter.get() );
         Assert.assertEquals( numUsers, usersCreated.size() );
@@ -121,7 +121,7 @@ public class UniqueValuesServiceTest {
                         newEntity.setField( new StringField( "username", username, true ) );
                         newEntity.setField( new StringField( "email", username + "@example.org", true ) );
 
-                        Observable<Entity> observable = manager.write( newEntity );
+                        Observable<Entity> observable = manager.write( newEntity, null );
                         Entity returned = observable.toBlocking().lastOrDefault( null );
 
                         usersCreated.put( username, newEntity );
