@@ -18,15 +18,14 @@ package org.apache.usergrid.tools;
 
 
 import com.google.common.collect.BiMap;
-import org.apache.usergrid.management.UserInfo;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Options;
+import org.apache.usergrid.management.UserInfo;
 import org.apache.usergrid.persistence.EntityManager;
+import org.apache.usergrid.persistence.SimpleEntityRef;
 import org.apache.usergrid.persistence.cassandra.CassandraService;
 import org.apache.usergrid.persistence.entities.User;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -40,6 +39,7 @@ public class UserManager extends ToolBase {
     @Override
     public Options createOptions() {
         Options options = super.createOptions();
+        options.addOption( "delete", "username", false, "Delete the specified user" );
         options.addOption( "u", "username", true, "The username to lookup" );
         options.addOption( "p", "password", true, "The password to set for the user" );
         return options;
@@ -48,7 +48,13 @@ public class UserManager extends ToolBase {
 
     @Override
     public void runTool( CommandLine line ) throws Exception {
+        
         startSpring();
+        
+        if ( line.hasOption( "p" ) && line.hasOption( "delete" )) {
+            logger.error("Cannot specify both -p and -delete options");
+        }
+        
         String userName = line.getOptionValue( "u" );
 
         UserInfo userInfo = managementService.findAdminUser( userName );
@@ -74,10 +80,16 @@ public class UserManager extends ToolBase {
         }
 
         if ( line.hasOption( "p" ) ) {
+            logger.info("Changing password for user: " + userName );
             String password = line.getOptionValue( "p" );
             managementService.setAdminUserPassword( userInfo.getUuid(), password );
             logger.info( "new password match?: " + managementService
                     .verifyAdminUserPassword( userInfo.getUuid(), password ) );
+        } 
+        
+        if ( line.hasOption( "delete" )) {
+            logger.info("Deleting user: " + userName );
+            em.delete( new SimpleEntityRef( User.ENTITY_TYPE, user.getUuid() ) );
         }
     }
 }
